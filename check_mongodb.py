@@ -189,6 +189,10 @@ def main(argv):
 
     if action == "connections":
         return check_connections(con, warning, critical, perf_data)
+    elif action == "connections_fi":
+        return check_connections_fi(con, warning, critical, perf_data)
+    elif action == "cursors":
+        return check_cursors(con, warning, critical, perf_data)
     elif action == "replication_lag":
         return check_rep_lag(con, host, port, warning, critical, False, perf_data, max_lag, user, passwd)
     elif action == "replication_lag_percent":
@@ -334,6 +338,42 @@ def check_connections(con, warning, critical, perf_data):
                 (current, "current_connections"),
                 (available, "available_connections")])
         return check_levels(used_percent, warning, critical, message)
+
+    except Exception, e:
+        return exit_with_general_critical(e)
+
+
+def check_connections_fi(con, warning, critical, perf_data):
+    warning = warning or 99
+    critical = critical or 150
+    try:
+        data = get_server_status(con)
+
+        current = float(data['connections']['current'])
+
+        message = "(%i of %i connections) used" % (current, critical)
+        message += performance_data(perf_data, [(current, "current", warning, critical),
+                (current, "current_connections"),
+                (critical, "available_connections")])
+        return check_levels(current, warning, critical, message)
+
+    except Exception, e:
+        return exit_with_general_critical(e)
+
+
+def check_cursors(con, warning, critical, perf_data):
+    warning = warning or 15
+    critical = critical or 25
+    try:
+        data = get_server_status(con)
+
+        current = float(data['cursors']['totalOpen'])
+
+        message = "(%i of %i open cursors) used" % (current, critical)
+        message += performance_data(perf_data, [(current, "current", warning, critical),
+                (current, "current_cursors"),
+                (critical, "")])
+        return check_levels(current, warning, critical, message)
 
     except Exception, e:
         return exit_with_general_critical(e)
